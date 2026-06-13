@@ -55,7 +55,7 @@ The `.` at the end tells Docker to look for the Dockerfile in the current folder
 This is a web app so you need to map a port to access it in the browser:
 
 ```bash
-docker run -p 3000:80 nodejs-app
+docker run -p 3000:80 "Your-conatainer Id or name"
 ```
 
 Once its running, open your browser and go to:
