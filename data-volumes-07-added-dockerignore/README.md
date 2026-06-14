@@ -1,6 +1,6 @@
-# Docker .dockerignore
+# Docker .dockerignore + Environment Variables
 
-This project builds on the previous volumes project. The main thing I learned here is how to use a `.dockerignore` file to stop unnecessary files from being copied into the Docker image when you build it.
+This project builds on the previous volumes project. Along with the `.dockerignore` file, I also learned how to use environment variables in Docker using the `ENV` instruction in the Dockerfile and passing a `.env` file when running the container.
 
 ---
 
@@ -17,6 +17,60 @@ In this project the `.dockerignore` contains things like:
 - `feedback` — this is handled by a volume so it does not need to be baked into the image
 - `temp` — temporary files that are not needed in the image
 
+### Environment Variables
+
+Instead of hardcoding values like the port number directly in the code, you can use environment variables. This way you can change things like the port without touching the actual code.
+
+In the Dockerfile the port is set using `ENV`:
+```dockerfile
+ENV PORT 80
+EXPOSE $PORT
+```
+
+This sets a default port of 80 inside the container. The `EXPOSE $PORT` then uses that variable instead of a hardcoded number.
+
+In `server.js` the port was changed from:
+```javascript
+app.listen(80)
+```
+to:
+```javascript
+app.listen(process.env.PORT)
+```
+
+This means the app now reads the port from the environment variable instead of having it hardcoded. So if you want to change the port later you just change the variable and not the code itself.
+
+The `.env` file in the project contains:
+PORT=80
+
+---
+
+## Updated Dockerfile
+
+```dockerfile
+FROM node:14
+
+WORKDIR /app
+
+COPY package.json .
+
+RUN npm install
+
+COPY . .
+
+ENV PORT 80
+
+EXPOSE $PORT
+
+CMD [ "npm", "start" ]
+```
+
+A few things changed from the previous version:
+- Base image updated from `node:12` to `node:14`
+- `ENV PORT 80` added to set the port as an environment variable
+- `EXPOSE $PORT` now uses the variable instead of a hardcoded port number
+- `CMD` changed to `npm start` instead of running node directly
+
 ---
 
 ## Project Structure
@@ -27,6 +81,8 @@ data-volumes-07-added-dockerignore/
 ├── public/
 
 ├── .dockerignore
+
+├── .env
 
 ├── Dockerfile
 
@@ -64,16 +120,16 @@ Because of `.dockerignore`, Docker will skip the unnecessary files during the bu
 
 ## Run the Container
 
-Replace `your/project/path` with the actual path where you cloned the project on your machine:
+Replace `your/project/path` with the actual path where you have the project on your machine:
 
 ```bash
-docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "your/project/path/data-volumes-07-added-dockerignore:/app:ro" -v /app/node_modules -v /app/temp feedback-web:3.0
+docker run -p 3000:80 -d --rm --name feedback-app --env-file ./.env -v feedback:/app/feedback -v "your/project/path/data-volumes-07-added-dockerignore:/app" -v /app/node_modules -v /app/temp feedback-web:3.0
 ```
 
-For example if you cloned it to your Documents folder it would look like this:
+For example if your project is in Documents it would look like this:
 
 ```bash
-docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/yourname/Documents/Docker/data-volumes-07-added-dockerignore:/app:ro" -v /app/node_modules -v /app/temp feedback-web:3.0
+docker run -p 3000:80 -d --rm --name feedback-app --env-file ./.env -v feedback:/app/feedback -v "/home/yourname/Documents/Docker/data-volumes-07-added-dockerignore:/app" -v /app/node_modules -v /app/temp feedback-web:3.0
 ```
 
 Here is what every part of this command does:
@@ -86,6 +142,8 @@ Here is what every part of this command does:
 
 `--name feedback-app` — gives the container a proper name instead of a random one Docker assigns. Change this to whatever name you want
 
+`--env-file ./.env` — tells Docker to read the `.env` file and pass all the variables inside it to the container. This is cleaner than typing each variable manually in the command. The `./` just means the `.env` file is in the current folder you are running the command from
+
 ---
 
 ## The 4 Volumes Explained
@@ -97,8 +155,8 @@ This project uses 4 volumes in the run command and each one does a different job
 Saves the feedback data submitted through the app. Even if the container stops or gets deleted this data stays on your machine because Docker manages it in a named volume called `feedback`.
 
 **Volume 2 — Bind Mount**
--v "your/project/path/data-volumes-07-added-dockerignore:/app:ro"
-Connects your local project folder directly to `/app` inside the container. Replace `your/project/path` with wherever you have the project on your machine. The `:ro` at the end makes it read only so the container can read your code but cannot write or modify anything in your local folder.
+-v "your/project/path/data-volumes-07-added-dockerignore:/app"
+Connects your local project folder directly to `/app` inside the container. Replace `your/project/path` with wherever you have the project on your machine. Any changes you make to your local files show up inside the container instantly.
 
 **Volume 3 — Anonymous Volume for node_modules**
 -v /app/node_modules
@@ -106,15 +164,12 @@ Since the bind mount covers the entire `/app` folder, Docker would normally try 
 
 **Volume 4 — Anonymous Volume for temp**
 -v /app/temp
-The bind mount is read only so the container cannot write anything inside `/app`. But the app needs somewhere to write temporary files. This anonymous volume gives the `temp` folder write access even though the rest of `/app` is locked as read only.
+The app needs somewhere to write temporary files. This anonymous volume gives the `temp` folder its own space inside the container so the app can write to it freely.
 
 ---
 
 ## Open the App
-
-```bash
 http://localhost:3000
-```
 
 ---
 
@@ -159,4 +214,4 @@ docker rmi feedback-web:3.0
 
 ## Note
 
-The bind mount path in the run command is specific to your machine. When you clone this project change that path to wherever the project folder is sitting on your machine. Everything else in the command stays the same.
+The bind mount path in the run command is specific to your machine. When you clone this project change that path to wherever the project folder is sitting on your machine. Also make sure you have a `.env` file in the project folder with `PORT=80` before running the container. The `.env` file is not pushed to GitHub intentionally since it can contain sensitive information.
