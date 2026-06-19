@@ -31,7 +31,11 @@ docker run --name goals-backend \
   -e MONGODB_USERNAME=max \
   -e MONGODB_PASSWORD=secret \
   -v logs:/app/logs \
+<<<<<<< HEAD
   -v /Users/maximilianschwarzmuller/development/teaching/udemy/docker-complete/backend:/app \
+=======
+  -v /home/nikil/Documents/Docker-docs/compose-02-finished/compose-02-finished/backend:/app \
+>>>>>>> 1114ae2 (Added README.md file and .gitignore filer)
   -v /app/node_modules \
   --rm \
   -d \
@@ -50,7 +54,11 @@ Run React SPA Container
 ---------------------
 
 docker run --name goals-frontend \
+<<<<<<< HEAD
   -v /Users/maximilianschwarzmuller/development/teaching/udemy/docker-complete/frontend/src:/app/src \
+=======
+  -v /home/nikil/Documents/Docker-docs/compose-02-finished/compose-02-finished/frontend:/app/src \
+>>>>>>> 1114ae2 (Added README.md file and .gitignore filer)
   --rm \
   -d \
   -p 3000:3000 \

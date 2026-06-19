@@ -1,0 +1,28 @@
+# Node.js dependencies
+backend/node_modules/
+frontend/node_modules/
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+env/
+
+# Build output
+frontend/build/
+dist/
+
+# Coverage reports
+coverage/
+
+# Editor/OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Docker runtime junk
+tmp/
+*.pid
+*.seed
