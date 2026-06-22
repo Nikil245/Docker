@@ -1,0 +1,31 @@
+services:
+
+  # 1. Nginx — serves React + proxies /api to backend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '8000:80'        # localhost:8000 → Nginx port 80
+    depends_on:
+      - backend
+
+  # 2. Express — REST API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo
+
+  # 3. MongoDB — database
+  # NOTE: using 27018 on host side to avoid conflict with local MongoDB
+  mongo:
+    image: mongo:6
+    ports:
+      - '27018:27017'    # 27018 on your machine → 27017 inside container
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
