@@ -1,10 +1,10 @@
-# 📝 Docker Notes App — Practice Project
+# Docker Notes App — Practice Project
 
 A full-stack Notes app built with **React-free HTML frontend**, **Node.js/Express backend**, and **MongoDB** — all containerized with Docker.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 docker-practice/
@@ -23,7 +23,7 @@ docker-practice/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Start everything (builds images + starts containers)
@@ -39,7 +39,7 @@ docker compose down
 
 ---
 
-## 🐳 DOCKER COMMANDS TO PRACTICE
+## DOCKER COMMANDS TO PRACTICE
 
 ### ─── IMAGES ───────────────────────────────────────────
 
@@ -227,7 +227,7 @@ docker compose stop
 # Stop + remove containers
 docker compose down
 
-# Stop + remove containers + volumes (⚠️ deletes mongo data!)
+# Stop + remove containers + volumes (deletes mongo data!)
 docker compose down -v
 
 # View logs of all services
@@ -273,13 +273,13 @@ docker volume prune
 # Remove unused networks
 docker network prune
 
-# ☢️ Remove EVERYTHING unused (containers, images, volumes, networks)
+# Remove EVERYTHING unused (containers, images, volumes, networks)
 docker system prune -a --volumes
 ```
 
 ---
 
-## 🔬 Practice Exercises
+## Practice Exercises
 
 ### Exercise 1 — Images
 1. Build the backend image manually: `docker build -t notes-backend ./backend`
@@ -296,7 +296,7 @@ docker system prune -a --volumes
 1. Add some notes via `http://localhost:3000`
 2. Stop + remove containers: `docker compose down`
 3. Restart: `docker compose up -d`
-4. ✅ Notes still there! (Named volume persisted data)
+4. Notes still there! (Named volume persisted data)
 5. Now try: `docker compose down -v` and restart — notes are gone!
 
 ### Exercise 4 — Networks
@@ -316,7 +316,7 @@ docker system prune -a --volumes
 
 ---
 
-## 🏗 What Each Concept Does in This App
+## What Each Concept Does in This App
 
 | Concept | Where Used |
 |---|---|
