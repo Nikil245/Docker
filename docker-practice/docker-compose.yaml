@@ -1,0 +1,111 @@
+# ============================================================
+#  Docker Practice App — docker-compose.yaml
+#  Covers: images, containers, volumes, networks, ENV, services
+# ============================================================
+
+version: "3.8"
+
+services:
+
+  # ──────────────────────────────────────────
+  # 1. MONGODB — Database Container
+  # ──────────────────────────────────────────
+  mongodb:
+    image: mongo:6            # Pull official image from Docker Hub
+    container_name: notes-mongodb
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+
+    # ENV variables for MongoDB root credentials
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS}
+      MONGO_INITDB_DATABASE: notesdb
+
+    # NAMED VOLUME — data persists even if container is removed
+    volumes:
+      - mongo-data:/data/db
+
+    # Connect to our custom network
+    networks:
+      - notes-network
+
+    # Healthcheck — waits until mongo is ready
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # 2. BACKEND — Node.js / Express Container
+  # ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend       # Build from local Dockerfile
+      dockerfile: Dockerfile
+    container_name: notes-backend
+    restart: unless-stopped
+
+    # ENV variables — passed into the container at runtime
+    environment:
+      PORT: ${BACKEND_PORT}
+      # Container name "mongodb" is used as hostname on the Docker network
+      MONGO_URL: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@mongodb:27017/notesdb?authSource=admin
+
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"   # host:container
+
+    # BIND MOUNT — live reload during development
+    # Changes to ./backend on your machine reflect instantly inside the container
+    volumes:
+      - ./backend:/app              # Bind mount (your code → container)
+      - /app/node_modules           # Anonymous volume: keeps container's node_modules intact
+
+    # Wait for mongodb to be healthy before starting
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+    networks:
+      - notes-network
+
+  # ──────────────────────────────────────────
+  # 3. FRONTEND — Nginx / Static HTML Container
+  # ──────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: notes-frontend
+    restart: unless-stopped
+
+    ports:
+      - "${FRONTEND_PORT}:80"       # Expose on host port from .env
+
+    # BIND MOUNT — frontend HTML file live-linked
+    volumes:
+      - ./frontend/index.html:/usr/share/nginx/html/index.html
+
+    depends_on:
+      - backend
+
+    networks:
+      - notes-network
+
+# ──────────────────────────────────────────
+# NAMED VOLUMES — defined at top level
+# Docker manages these; data survives container restarts/removals
+# ──────────────────────────────────────────
+volumes:
+  mongo-data:
+    driver: local
+
+# ──────────────────────────────────────────
+# CUSTOM NETWORK — containers talk to each other by service name
+# e.g. backend reaches mongo at hostname "mongodb"
+# ──────────────────────────────────────────
+networks:
+  notes-network:
+    driver: bridge
