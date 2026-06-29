@@ -1,0 +1,47 @@
+services:
+
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27018:27017"
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS}
+      MONGO_INITDB_DATABASE: notesdb
+
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build: ./backend
+
+    environment:
+      PORT: ${BACKEND_PORT}
+      MONGO_URL: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@mongodb:27017/notesdb?authSource=admin
+
+
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+    depends_on:
+      - mongodb
+
+  frontend:
+    build: ./frontend
+
+    ports:
+      - "${FRONTEND_PORT}:80"
+
+    volumes:
+      - ./frontend/index.html:/usr/share/nginx/html/index.html
+
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:

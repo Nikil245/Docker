@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📝 Docker Notes App</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f8;
+        min-height: 100vh;
+        padding: 30px 20px;
+        color: #333;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        font-size: 2rem;
+        color: #2d3748;
+      }
+
+      header p {
+        color: #718096;
+        margin-top: 6px;
+        font-size: 0.95rem;
+      }
+
+      .status-bar {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+      }
+
+      .status-bar span {
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+
+      .status-ok {
+        background: #c6f6d5;
+        color: #276749;
+      }
+
+      .status-error {
+        background: #fed7d7;
+        color: #c53030;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        max-width: 600px;
+        margin: 0 auto 24px auto;
+      }
+
+      .card h2 {
+        font-size: 1.1rem;
+        margin-bottom: 16px;
+        color: #4a5568;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        margin-bottom: 12px;
+        outline: none;
+        transition: border 0.2s;
+        font-family: inherit;
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: #667eea;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 90px;
+      }
+
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #5a67d8;
+      }
+
+      .notes-list {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .note-item {
+        background: white;
+        border-radius: 10px;
+        padding: 18px 20px;
+        margin-bottom: 14px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .note-text h3 {
+        font-size: 1rem;
+        color: #2d3748;
+        margin-bottom: 4px;
+      }
+
+      .note-text p {
+        font-size: 0.88rem;
+        color: #718096;
+      }
+
+      .note-text small {
+        display: block;
+        margin-top: 6px;
+        font-size: 0.78rem;
+        color: #a0aec0;
+      }
+
+      .delete-btn {
+        background: #fed7d7;
+        color: #c53030;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+
+      .delete-btn:hover {
+        background: #fc8181;
+        color: white;
+      }
+
+      .empty-msg {
+        text-align: center;
+        color: #a0aec0;
+        padding: 30px;
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>📝 Docker Notes App</h1>
+      <p>Frontend → Backend → MongoDB — all running in Docker!</p>
+    </header>
+
+    <div class="status-bar">
+      <span id="api-status">Checking API...</span>
+    </div>
+
+    <!-- Add Note Form -->
+    <div class="card">
+      <h2>➕ Add a New Note</h2>
+      <input type="text" id="title" placeholder="Note title..." />
+      <textarea id="content" placeholder="Note content..."></textarea>
+      <button onclick="addNote()">Save Note</button>
+    </div>
+
+    <!-- Notes List -->
+    <div class="notes-list" id="notes-list">
+      <div class="empty-msg">Loading notes...</div>
+    </div>
+
+    <script>
+      // ENV variable injected by nginx or just use relative path
+      // In Docker, frontend talks to backend via the API URL
+      const API_URL = window.API_URL || "http://localhost:5000";
+
+      async function checkHealth() {
+        try {
+          const res = await fetch(`${API_URL}/api/health`);
+          const data = await res.json();
+          document.getElementById("api-status").textContent =
+            "✅ API Connected";
+          document.getElementById("api-status").className = "status-ok";
+        } catch (e) {
+          document.getElementById("api-status").textContent =
+            "❌ API Unreachable";
+          document.getElementById("api-status").className = "status-error";
+        }
+      }
+
+      async function fetchNotes() {
+        try {
+          const res = await fetch(`${API_URL}/api/notes`);
+          const notes = await res.json();
+          renderNotes(notes);
+        } catch (e) {
+          document.getElementById("notes-list").innerHTML =
+            '<div class="empty-msg">⚠️ Could not load notes. Is the backend running?</div>';
+        }
+      }
+
+      function renderNotes(notes) {
+        const container = document.getElementById("notes-list");
+        if (!notes.length) {
+          container.innerHTML =
+            '<div class="empty-msg">No notes yet. Add one above!</div>';
+          return;
+        }
+        container.innerHTML = notes
+          .map(
+            (note) => `
+          <div class="note-item">
+            <div class="note-text">
+              <h3>${escapeHtml(note.title)}</h3>
+              <p>${escapeHtml(note.content)}</p>
+              <small>${new Date(note.createdAt).toLocaleString()}</small>
+            </div>
+            <button class="delete-btn" onclick="deleteNote('${note._id}')">🗑 Delete</button>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      async function addNote() {
+        const title = document.getElementById("title").value.trim();
+        const content = document.getElementById("content").value.trim();
+        if (!title || !content) {
+          alert("Please fill in both title and content.");
+          return;
+        }
+        try {
+          await fetch(`${API_URL}/api/notes`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, content }),
+          });
+          document.getElementById("title").value = "";
+          document.getElementById("content").value = "";
+          fetchNotes();
+        } catch (e) {
+          alert("Failed to save note.");
+        }
+      }
+
+      async function deleteNote(id) {
+        try {
+          await fetch(`${API_URL}/api/notes/${id}`, { method: "DELETE" });
+          fetchNotes();
+        } catch (e) {
+          alert("Failed to delete note.");
+        }
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+      }
+
+      checkHealth();
+      fetchNotes();
+    </script>
+  </body>
+</html>
