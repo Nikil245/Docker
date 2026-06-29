@@ -1,8 +1,8 @@
-# 🐞 Debugging a Crashed Docker Container
+# Debugging a Crashed Docker Container
 
 This is a full-stack Notes application (HTML/Nginx Frontend, Node.js Backend, and MongoDB) deliberately designed to simulate real-world container crashes. Use this project to practice your container debugging and recovery skills.
 
-## 📥 How to Pull and Setup
+##  How to Pull and Setup
 
 1. **Clone the repository:**
    ```bash
@@ -11,14 +11,14 @@ Navigate into the project folder:
 
 Bash
 cd <YOUR_PROJECT_FOLDER_NAME>
-🚀 The Launch Command
+The Launch Command
 To build the images and spin up the cluster in detached mode, run:
 
 Bash
 docker compose up -d --build
 Note: The containers are configured to fail on startup. It will look like it succeeded, but they are crashing in the background. It is your job to find out why.
 
-🛠️ Essential Debugging Commands
+Essential Debugging Commands
 When a container crashes, use these commands in order to perform an autopsy and find the root cause.
 
 1. Find the Casualties (The Autopsy)
@@ -36,7 +36,7 @@ If a container disappeared without a clear error log, check if the host machine 
 
 Bash
 docker inspect <container_name_or_id> | grep -i oom
-🩹 How to Fix the Code (Recovery)
+How to Fix the Code (Recovery)
 Based on the errors found in the logs, you need to make the following changes to your source files to bring the cluster back to life.
 
 1. Fix the Frontend Crash (frontend/nginx.conf)
