@@ -1,76 +1,269 @@
-# 🐞 Debugging a Crashed Docker Container
+# Docker Debugging Lab – Crashed Full-Stack Notes Application
 
-This is a full-stack Notes application (HTML/Nginx Frontend, Node.js Backend, and MongoDB) deliberately designed to simulate real-world container crashes. Use this project to practice your container debugging and recovery skills.
+A hands-on Docker debugging project designed to simulate real-world container failures.
 
-## 📥 How to Pull and Setup
+This project contains a complete Notes application consisting of:
 
-1. **Clone the repository:**
-   ```bash
-   git clone <YOUR_GITHUB_REPOSITORY_URL_HERE>
+Frontend: HTML + Nginx
+Backend: Node.js + Express
+Database: MongoDB
+
+The application is intentionally broken. Your goal is to investigate why the containers crash and recover the entire application using Docker debugging techniques.
+
+---
+
+# Project Structure
+
+```text
+.
+├── frontend/
+│   ├── index.html
+│   └── nginx.conf
+│
+├── backend/
+│   ├── server.js
+│   ├── package.json
+│   └── Dockerfile
+│
+├── docker-compose.yml
+└── README.md
+```
+
+---
+
+# Getting Started
+
+## 1️Clone the Repository
+
+```bash
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+```
+
 Navigate into the project folder:
 
-Bash
-cd <YOUR_PROJECT_FOLDER_NAME>
-🚀 The Launch Command
-To build the images and spin up the cluster in detached mode, run:
+```bash
+cd <YOUR_PROJECT_FOLDER>
+```
 
-Bash
+---
+
+# Start the Application
+
+Build the Docker images and start all services:
+
+```bash
 docker compose up -d --build
-Note: The containers are configured to fail on startup. It will look like it succeeded, but they are crashing in the background. It is your job to find out why.
+```
 
-🛠️ Essential Debugging Commands
-When a container crashes, use these commands in order to perform an autopsy and find the root cause.
+> Note
+>
+> The containers are intentionally configured to crash during startup.
+>
+> The `docker compose up` command may appear successful, but one or more containers will immediately exit.
+>
+> Your task is to identify the root cause and fix the application.
 
-1. Find the Casualties (The Autopsy)
-List all containers (both running and stopped) to see which ones failed and note their Exited status codes:
+---
 
-Bash
+# Docker Debugging Workflow
+
+## Step 1 — Find the Crashed Containers
+
+List all containers, including stopped ones:
+
+```bash
 docker ps -a
-2. Read the Black Box (Check the Logs)
-Once you have the name of the crashed container from the previous step, pull its error logs to see its final output before dying:
+```
 
-Bash
+Look for containers showing:
+
+```text
+Exited (1)
+Exited (255)
+Exited (...)
+```
+
+---
+
+## Step 2 — Read the Container Logs
+
+Inspect the logs to determine why the container exited.
+
+```bash
 docker logs <container_name_or_id>
-3. Check for Resource Starvation (OOMKilled)
-If a container disappeared without a clear error log, check if the host machine killed it for using too much memory:
+```
 
-Bash
+Example:
+
+```bash
+docker logs notes-backend
+```
+
+---
+
+## Step 3 — Check for OOM (Out Of Memory)
+
+If there are no useful logs, verify whether Docker killed the container because of insufficient memory.
+
+```bash
 docker inspect <container_name_or_id> | grep -i oom
-🩹 How to Fix the Code (Recovery)
-Based on the errors found in the logs, you need to make the following changes to your source files to bring the cluster back to life.
+```
 
-1. Fix the Frontend Crash (frontend/nginx.conf)
-Nginx crashed because of a syntax error (a missing semicolon). Update the listen directive:
+If you see:
 
-Nginx
+```text
+OOMKilled: true
+```
+
+the container was terminated due to memory exhaustion.
+
+---
+
+# Recovery Guide
+
+After identifying the errors, apply the following fixes.
+
+---
+
+# Fix 1 — Frontend Crash
+
+**File**
+
+```text
+frontend/nginx.conf
+```
+
+### Problem
+
+Nginx contains a syntax error.
+
+### Fix
+
+Add the missing semicolon after the `listen` directive.
+
+```nginx
 server {
-    # FIX: Add the missing semicolon here
-    listen 80; 
+
+    listen 80;
 
     location / {
         root /usr/share/nginx/html;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
+
 }
-2. Fix the Backend Crash (backend/server.js)
-The Node.js backend crashed because it was hard-coded to require an environment variable that didn't exist. You can either supply the variable in docker-compose.yaml, or remove the strict requirement from the code.
+```
 
-To fix the code directly, open backend/server.js and delete or comment out the sabotage block:
+---
 
-JavaScript
-// --- ENV Variables ---
-const PORT = process.env.PORT || 5000;
-const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:27017/notesdb";
+# Fix 2 — Backend Crash
 
-// FIX: Delete or comment out this entire block to allow the server to boot
+**File**
+
+```text
+backend/server.js
+```
+
+### Problem
+
+The backend requires an environment variable that doesn't exist.
+
+Locate the sabotage block:
+
+```javascript
+if (!process.env.SUPER_SECRET_KEY) {
+    throw new Error(
+        "CRITICAL FAILURE: System cannot boot. SUPER_SECRET_KEY is missing!"
+    );
+}
+```
+
+### Option 1 (Recommended)
+
+Delete or comment out the block.
+
+```javascript
 // if (!process.env.SUPER_SECRET_KEY) {
-//    throw new Error("CRITICAL FAILURE: System cannot boot. SUPER_SECRET_KEY is missing!");
+//     throw new Error("CRITICAL FAILURE: System cannot boot.");
 // }
-3. Restart the Cluster
-Once those files are saved, tear down the broken containers and rebuild the images to apply your fixes:
+```
 
-Bash
+### Option 2
+
+Provide the environment variable inside:
+
+```yaml
+docker-compose.yml
+```
+
+---
+
+# Rebuild the Project
+
+After saving all changes, remove the old containers:
+
+```bash
 docker compose down
+```
+
+Rebuild everything:
+
+```bash
 docker compose up -d --build
-Run docker ps to verify all containers are now showing an Up status!
+```
+
+---
+
+# Verify Everything Works
+
+Check that all containers are running:
+
+```bash
+docker ps
+```
+
+Expected output:
+
+```text
+CONTAINER ID   IMAGE              STATUS
+xxxxxxxxxxxx   notes-frontend     Up
+xxxxxxxxxxxx   notes-backend      Up
+xxxxxxxxxxxx   mongo              Up
+```
+
+No containers should show an **Exited** status.
+
+---
+
+# Docker Commands Reference
+
+| Purpose                    | Command                        |
+| -------------------------- | ------------------------------ |
+| Build and start containers | `docker compose up -d --build` |
+| Stop containers            | `docker compose down`          |
+| View running containers    | `docker ps`                    |
+| View all containers        | `docker ps -a`                 |
+| View container logs        | `docker logs <container>`      |
+| Inspect container          | `docker inspect <container>`   |
+| Restart services           | `docker compose restart`       |
+| Remove unused resources    | `docker system prune`          |
+
+---
+
+# Learning Objectives
+
+By completing this lab, you will learn how to:
+
+* Debug crashed Docker containers
+* Read Docker logs effectively
+* Interpret container exit codes
+* Identify configuration errors
+* Debug Nginx startup failures
+* Debug Node.js runtime failures
+* Rebuild Docker images correctly
+* Restore a broken multi-container application
+
+---
+
+
